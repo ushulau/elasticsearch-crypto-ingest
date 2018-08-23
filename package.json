@@ -17,8 +17,11 @@
   },
   "homepage": "https://github.com/ushulau/elasticsearch-cryptopia-ingest#readme",
   "dependencies": {
+    "base62": "^2.0.0",
+    "buffer": "^5.2.0",
     "commander": "^2.17.1",
     "moment": "^2.22.2",
-    "node-rest-client-promise": "^3.1.1"
+    "node-rest-client-promise": "^3.1.1",
+    "xxhash": "^0.2.4"
   }
 }
