@@ -1,0 +1,27 @@
+//PUT _template/cryptopia
+{
+  "index_patterns": ["cryptopia_*"],
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0
+  },
+    "mappings": {
+      "_doc": {
+        "properties": {
+          "amount": {
+            "type": "float"
+          },
+          "price": {
+            "type": "float"
+          },
+          "ts": {
+            "type": "date"
+          },
+          "type": {
+            "type": "keyword",
+            "ignore_above": 10
+          }
+        }
+      }
+    }
+ }
