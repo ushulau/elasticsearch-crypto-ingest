@@ -42,46 +42,43 @@ if (!program.tradePairs) {
     console.log(`subscribing to following products -> ${program.tradePairs}`);
 }
 
+function subscribe() {
+    const websocket = new Gdax.WebsocketClient(
+        program.tradePairs,
+        'wss://ws-feed.pro.coinbase.com',
+        program.apiCredentials,
+        {channels: ['ticker']}
+    );
+    websocket.on('message', data => {
+        if (data.length) {
+            console.error("data is an array", data);
+        } else if (data.type === 'ticker' && data.side) {
+            //console.log(data);
+            let timestamp = new Date(data.time);
+            let tradePair = data.product_id.toLowerCase().replace('-', '_');
+            let doc = {
+                price: data.price, size: data.last_size, best_bid: data.best_bid,
+                best_ask: data.best_ask, side: data.side, ts: data.time
+            };
+            let id = hash(JSON.stringify(doc));
+            bulkBody.push({index: {_index: `coinbase2_${tradePair}`, _type: '_doc', _id: id}});
+            bulkBody.push(doc);
 
-const websocket = new Gdax.WebsocketClient(
-    program.tradePairs,
-    'wss://ws-feed.pro.coinbase.com',
-    program.apiCredentials,
-    {channels: ['ticker']}
-);
+        } else if (new Date().getTime() - lastUpdate >= 30000) {
+            lastUpdate = new Date().getTime();
+            console.log(`${ts()} no new records to persist. Sequence id -> ${data.sequence}`);
+        }
+    });
+    websocket.on('error', err => {
+        console.error(err)
+    });
+    websocket.on('close', () => {
+        console.log('Socket closed resubscribing....');
+        subscribe();
+    });
+}
 
-
-websocket.on('message', data => {
-
-    if (data.length) {
-        console.error("data is an array", data);
-    } else if (data.type === 'ticker' && data.side) {
-        //console.log(data);
-        let timestamp = new Date(data.time).getTime();
-        let tradePair = data.product_id.toLowerCase().replace('-', '_');
-        let doc = {
-            price: data.price, size: data.last_size, best_bid: data.best_bid,
-            best_ask: data.best_ask, side: data.side, ts: timestamp
-        };
-
-
-        let id = hash(JSON.stringify(doc));
-        bulkBody.push({index: {_index: `coinbase_${tradePair}`, _type: '_doc', _id: id}});
-        bulkBody.push(doc);
-
-    } else if (new Date().getTime() - lastUpdate >= 30000) {
-        lastUpdate = new Date().getTime();
-        console.log(`${ts()} no new records to persist. Sequence id -> ${data.sequence}`);
-    }
-});
-websocket.on('error', err => {
-    console.error(err)
-});
-websocket.on('close', () => {
-    console.log('CLOSING');
-});
-
-
+subscribe();
 setInterval(() => {
     try {
         if (bulkBody.length > 0) {
