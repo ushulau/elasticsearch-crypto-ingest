@@ -23,11 +23,12 @@ function hash(str) {
 }
 
 program
-    .version('0.2.0')
+    .version('0.3.0')
     .usage('[options] <file ...>')
     .option('-t, --tradePairs <trade-pairs>', 'define pairs to monitor', val => val.split(','))
     .option('-a, --apiCredentials <api-credentials>', 'gdax api credentials', val => eval('(' + val + ')'))
     .option('-c, --esConfig <elasticsearch_config>', 'configuration of elasticsearch connection')
+    .option('-i, --indexPrefix <index_prefix>', 'es index prefix for trade pairs', val => !val? 'coinbase' :val)
     .parse(process.argv);
 
 
@@ -35,6 +36,10 @@ const es = new elasticsearch.Client({
     host: program.esConfig,
     log: 'info'
 });
+
+if(!program.indexPrefix){
+    program.indexPrefix = `coinbase`;
+}
 if (!program.tradePairs) {
     program.tradePairs = ['LTC-BTC', 'ETH-USD', 'ETH-BTC', 'BTC-USD'];
     console.log(`no products configured will subscribe to -> ${program.tradePairs}`);
@@ -58,10 +63,10 @@ function subscribe() {
             let tradePair = data.product_id.toLowerCase().replace('-', '_');
             let doc = {
                 price: data.price, size: data.last_size, best_bid: data.best_bid,
-                best_ask: data.best_ask, side: data.side, ts: data.time
+                best_ask: data.best_ask, side: data.side, ts: data.time, market: tradePair
             };
             let id = hash(JSON.stringify(doc));
-            bulkBody.push({index: {_index: `coinbase2_${tradePair}`, _type: '_doc', _id: id}});
+            bulkBody.push({index: {_index: `${program.indexPrefix}_${tradePair}`, _type: '_doc', _id: id}});
             bulkBody.push(doc);
 
         } else if (new Date().getTime() - lastUpdate >= 30000) {

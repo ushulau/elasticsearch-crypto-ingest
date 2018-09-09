@@ -30,6 +30,10 @@
           "type": "keyword",
           "ignore_above": 10
         },
+        "market":{
+          "type": "keyword",
+          "ignore_above": 10
+        },
         "ts": {
           "type": "date"
         }
